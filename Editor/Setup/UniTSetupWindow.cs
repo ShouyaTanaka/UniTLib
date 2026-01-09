@@ -5,13 +5,21 @@ namespace UniTLib.Editor.Setup
 {
     public class UniTSetupWindow : EditorWindow
     {
-        bool _useUniTask = true;
-        bool _useUniRx = true;
+        bool _useUniTask;
+        bool _useUniRx;
+        bool _createProjectFolders = true;
 
         [MenuItem("Tools/UniTLib/Setup")]
         static void Open()
         {
             GetWindow<UniTSetupWindow>("UniTLib Setup");
+        }
+
+        void OnEnable()
+        {
+            // 初回表示時に既存パッケージのインストール状態を反映
+            _useUniTask = !PackageInstaller.IsInstalled(PackageInfoConst.UniTaskName);
+            _useUniRx = !PackageInstaller.IsInstalled(PackageInfoConst.UniRxName);
         }
 
         void OnGUI()
@@ -30,6 +38,10 @@ namespace UniTLib.Editor.Setup
                 PackageInfoConst.UniRxName,
                 ref _useUniRx
             );
+
+            GUILayout.Space(12);
+
+            DrawFolderCreation();
 
             GUILayout.Space(12);
 
@@ -68,6 +80,20 @@ namespace UniTLib.Editor.Setup
 
             if (_useUniRx)
                 PackageInstaller.Enqueue(PackageInfoConst.UniRxGit);
+
+            if (_createProjectFolders)
+                PackageInstaller.CreateProjectFolders();
+        }
+
+        void DrawFolderCreation()
+        {
+            GUILayout.Label("Project Structure", EditorStyles.boldLabel);
+            GUILayout.Space(4);
+
+            _createProjectFolders = EditorGUILayout.ToggleLeft(
+                "Create project folders",
+                _createProjectFolders
+            );
         }
 
         void DrawStatus()

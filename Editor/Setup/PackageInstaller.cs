@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEditor.PackageManager.Requests;
+using UnityEngine;
 
 namespace UniTLib.Editor.Setup
 {
@@ -69,6 +71,45 @@ namespace UniTLib.Editor.Setup
             _listRequest = null; // Installed 再チェック用
 
             TryExecuteNext(); // 次へ
+        }
+
+        // -------- Folder Creation --------
+
+        public static void CreateProjectFolders()
+        {
+            string[] requiredFolders = new[]
+            {
+                "Assets/Scripts",
+                "Assets/Resources",
+                "Assets/Resources/Images",
+                "Assets/Resources/Sounds",
+                "Assets/Resources/Sounds/BGM",
+                "Assets/Resources/Sounds/SE",
+                "Assets/Resources/Materials",
+                "Assets/Prefabs",
+            };
+
+            foreach (var folder in requiredFolders)
+            {
+                CreateFolderIfNotExists(folder);
+            }
+
+            AssetDatabase.Refresh();
+            UnityEngine.Debug.Log("[UniTLib] Project folders created successfully.");
+        }
+
+        static void CreateFolderIfNotExists(string folderPath)
+        {
+            if (Directory.Exists(folderPath))
+                return;
+
+            string parentFolder = Path.GetDirectoryName(folderPath);
+            string folderName = Path.GetFileName(folderPath);
+
+            if (!Directory.Exists(parentFolder))
+                Directory.CreateDirectory(parentFolder);
+
+            Directory.CreateDirectory(folderPath);
         }
     }
 }
