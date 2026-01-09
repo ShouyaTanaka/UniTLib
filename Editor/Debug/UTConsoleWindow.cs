@@ -29,7 +29,7 @@ namespace UniTLib.Debug.Editor
         private int warningCount = 0;
         private int errorCount = 0;
 
-        [MenuItem("Window/UT Console")]
+        [MenuItem("Tools/UniTLib/UT Console")]
         public static void ShowWindow()
         {
             var window = GetWindow<UTConsoleWindow>("UT Console");

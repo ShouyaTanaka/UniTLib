@@ -91,6 +91,14 @@ namespace UniTLib.Debug
                     break;
             }
         }
+
+        internal static void UpdateLastLogTag(string tag)
+        {
+            if (logEntries.Count > 0)
+            {
+                logEntries[logEntries.Count - 1].Tag = tag;
+            }
+        }
     }
 
     public class LogBuilder
@@ -100,6 +108,7 @@ namespace UniTLib.Debug
         private string tag = "Default";
         private string filePath;
         private int lineNumber;
+        private LogEntry createdEntry;
 
         public LogBuilder(string message, LogType type, string filePath, int lineNumber)
         {
@@ -107,18 +116,21 @@ namespace UniTLib.Debug
             this.type = type;
             this.filePath = filePath;
             this.lineNumber = lineNumber;
+
+            // すぐにログを記録
+            createdEntry = new LogEntry(message, type, tag, filePath, lineNumber);
+            UTLog.AddLog(createdEntry);
         }
 
         public LogBuilder Tag(string tag)
         {
             this.tag = tag;
+            // 既に記録されたログのTagを更新
+            if (createdEntry != null)
+            {
+                createdEntry.Tag = tag;
+            }
             return this;
-        }
-
-        public void Log()
-        {
-            var entry = new LogEntry(message, type, tag, filePath, lineNumber);
-            UTLog.AddLog(entry);
         }
     }
 }
