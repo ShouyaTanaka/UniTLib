@@ -371,7 +371,16 @@ namespace UniTLib.Debug.Editor
                     EditorGUILayout.BeginHorizontal();
                     EditorGUILayout.LabelField("File:", labelStyle, GUILayout.Width(50));
 
-                    var fileName = Path.GetFileName(selectedLogEntry.FilePath);
+                    string fileName = selectedLogEntry.FilePath;
+                    try
+                    {
+                        fileName = Path.GetFileName(selectedLogEntry.FilePath);
+                    }
+                    catch
+                    {
+                        // パスが不正な場合はそのまま表示
+                    }
+
                     var fileButtonStyle = new GUIStyle(EditorStyles.label);
                     fileButtonStyle.normal.textColor = new Color(0.4f, 0.7f, 1f);
                     fileButtonStyle.hover.textColor = new Color(0.6f, 0.85f, 1f);

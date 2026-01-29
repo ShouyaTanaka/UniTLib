@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+using UnityEngine;
 
 namespace UniTLib.Debug
 {
@@ -37,6 +39,8 @@ namespace UniTLib.Debug
     {
         private static List<LogEntry> logEntries = new List<LogEntry>();
         private static Action<LogEntry> onLogAdded;
+        private static bool isInitialized = false;
+        private static bool captureUnityLogs = false;
 
         public static event Action<LogEntry> OnLogAdded
         {
@@ -44,11 +48,133 @@ namespace UniTLib.Debug
             remove => onLogAdded -= value;
         }
 
+        /// <summary>
+        /// Unity標準ログのキャプチャを有効にする
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        public static void Initialize()
+        {
+            if (!isInitialized)
+            {
+                captureUnityLogs = true;
+                Application.logMessageReceived += OnUnityLogMessageReceived;
+                isInitialized = true;
+            }
+        }
+
+        /// <summary>
+        /// Unity標準ログのキャプチャを無効にする
+        /// </summary>
+        public static void DisableUnityLogCapture()
+        {
+            captureUnityLogs = false;
+        }
+
+        /// <summary>
+        /// Unity標準ログのキャプチャを有効にする
+        /// </summary>
+        public static void EnableUnityLogCapture()
+        {
+            captureUnityLogs = true;
+        }
+
         public static List<LogEntry> GetAllLogs() => logEntries;
 
         public static void Clear()
         {
             logEntries.Clear();
+        }
+
+        private static void OnUnityLogMessageReceived(string message, string stackTrace, UnityEngine.LogType type)
+        {
+            if (!captureUnityLogs) return;
+
+            // UTLogから出力されたログは二重登録を避ける
+            if (message.StartsWith("[") && message.Contains("]"))
+            {
+                return;
+            }
+
+            // Unity LogTypeをUTLog LogTypeに変換
+            LogType utLogType;
+            switch (type)
+            {
+                case UnityEngine.LogType.Error:
+                case UnityEngine.LogType.Exception:
+                case UnityEngine.LogType.Assert:
+                    utLogType = LogType.Error;
+                    break;
+                case UnityEngine.LogType.Warning:
+                    utLogType = LogType.Warning;
+                    break;
+                default:
+                    utLogType = LogType.Log;
+                    break;
+            }
+
+            // スタックトレースからファイルパス、行番号、クラス名を抽出
+            string filePath = "";
+            int lineNumber = 0;
+            string className = "";
+            ParseStackTrace(stackTrace, out filePath, out lineNumber, out className);
+
+            // クラス名が取得できればタグに使用、なければ"Unity"
+            string tag = !string.IsNullOrEmpty(className) ? className : "Unity";
+
+            var entry = new LogEntry(message, utLogType, tag, filePath, lineNumber);
+            entry.StackTrace = stackTrace;
+
+            logEntries.Add(entry);
+            onLogAdded?.Invoke(entry);
+        }
+
+        private static void ParseStackTrace(string stackTrace, out string filePath, out int lineNumber, out string className)
+        {
+            filePath = "";
+            lineNumber = 0;
+            className = "";
+
+            if (string.IsNullOrEmpty(stackTrace)) return;
+
+            // スタックトレースの最初の行を取得
+            var lines = stackTrace.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length == 0) return;
+
+            string firstLine = lines[0];
+
+            // クラス名を抽出（例: "at ClassName.MethodName ()" または "ClassName.MethodName ()"）
+            var classMatch = Regex.Match(firstLine, @"(?:at\s+)?([\w.]+\.\w+)\s*\(");
+            if (classMatch.Success)
+            {
+                string fullName = classMatch.Groups[1].Value;
+                // 最後のドット前がクラス名（MethodNameを除く）
+                int lastDotIndex = fullName.LastIndexOf('.');
+                if (lastDotIndex > 0)
+                {
+                    className = fullName.Substring(0, lastDotIndex);
+                    // ネームスペースがある場合は最後のクラス名だけを取得
+                    int classNameDotIndex = className.LastIndexOf('.');
+                    if (classNameDotIndex > 0)
+                    {
+                        className = className.Substring(classNameDotIndex + 1);
+                    }
+                }
+            }
+
+            // スタックトレースから最初のファイルパスと行番号を抽出
+            // 例: "at ClassName.MethodName () [0x00001] in C:/Path/To/File.cs:123"
+            var match = Regex.Match(stackTrace, @"\(at (.+?):(\d+)\)");
+            if (!match.Success)
+            {
+                // 別のフォーマットを試す
+                match = Regex.Match(stackTrace, @"in (.+?):(\d+)");
+            }
+
+            if (match.Success && match.Groups.Count >= 3)
+            {
+                filePath = match.Groups[1].Value;
+                int.TryParse(match.Groups[2].Value, out lineNumber);
+            }
         }
 
         public static LogBuilder Log(string message,
