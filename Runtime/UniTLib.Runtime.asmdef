@@ -1,7 +1,10 @@
 {
     "name": "UniTLib.Runtime",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "UniTask",
+        "UniRx"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
