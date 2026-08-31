@@ -206,7 +206,7 @@ namespace UniTLib.Debug.Editor
             var tagStyle = new GUIStyle(EditorStyles.label);
             tagStyle.normal.textColor = new Color(0.5f, 0.8f, 1f);
             tagStyle.fontStyle = FontStyle.Bold;
-            GUILayout.Label($"[{log.Tag}]", tagStyle, GUILayout.Width(80));
+            GUILayout.Label($"[{log.Tag}]", tagStyle, GUILayout.Width(160));
 
             // メッセージ
             GUILayout.Label(log.Message, GUILayout.ExpandWidth(true));
